@@ -1,1 +1,13 @@
-*.code-workspace
+*.log
+*.lof
+*.aux
+*.fls
+*.toc
+*.out
+loes20.pdf
+*.bbl
+*.blg
+*.gz
+*.fdb_latexmk
+**/*.pyc
+loes20/Dokumentation/src/__pycache__/

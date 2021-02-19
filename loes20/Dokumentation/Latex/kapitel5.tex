@@ -1,0 +1,71 @@
+\chapter{Implementation}
+
+
+\section{IEEE 802.1X Implementation}
+
+For the implementation, the \texttt{hostapd} project was selected as a free implementation of the IEEE 802.1X protocol. It provides an implementation for a Supplicant, as well as an implementation for a Peer system. \texttt{hostapd} uses the OpenSSL library as a TLS implementation and uses a combination of EAPOL and EAP-TLS as the authentication framework. Further, \texttt{hostapd} allows using EAP-TEAP as an experimental implementation for a tunneled TLS protocol. For the Authenticator, the IEEE 802.1X notion of a pass-through Authenticator is used, and a RADIUS implementation, provided by the FreeRADIUS project, is used to perform the TLS handshake.
+
+\subsection{liboqs}
+
+liboqs\cite{stebila2016post} provides implementations of quantum-safe algorithms, with a focus on candidates of the \ac{NIST} \ac{PQ} project. Since liboqs has no built-in TLS support, a fork of the OpenSSL project provided by the ``Open Quantum Safe'' project is used, which implements the quantum-safe algorithms provided by liboqs into OpenSSL. Two versions of the fork are available. First, a fork of OpenSSL version 1.0.2t, which provides TLS~1.2 support. Secondly, a fork of OpenSSL version 1.1.1g, which provides TLS~1.3 support. Since the TLS~1.2 implementation is already deprecated and the TLS~1.3 branch is the only version that supports quantum-safe authentication, the 1.1.1g version is used for the implementation. In the TLS~1.3 design, \ac{PQ} algorithms use the TLS~1.3 \texttt{supported\_groups} extension. The way cryptographic primitives are negotiated in TLS~1.3 is different from past TLS versions since signature algorithms, symmetric ciphers and key exchanges are not negotiated as part of a fixed cipher suite but instead are negotiated independently. The \texttt{supported\_groups} extension is thereby used to provide a list of so-called \texttt{NamedGroup} values, which reflect different \ac{ECDH} curves or finite fields for classical DH key exchanges. All quantum-safe algorithms provided by liboqs are defined as a new "curve" in the context of a \texttt{NamedGroup}. Additionally, a combination of every quantum-safe algorithms with a classical algorithm is provided as distinct \texttt{NamedGroup} values to support the notion of hybrid key exchanges. This is done by combining every \ac{PQ} key exchange with an \ac{ECDH} algorithm with an equivalent security level. Details on the integration are provided as a whitepaper by Open Quantum Safe\cite{crockett2019prototyping}.
+
+\subsubsection{Integration of liboqs}
+
+The build process on OpenSSL with liboqs is done as described by the Open Quantum Safe project's documentation\footurl{https://github.com/open-quantum-safe/openssl}. For the integration with FreeRADIUS and hostapd, the OpenSSL library is built as a shared library, and rpaths are used to avoid conflicts with the operating systems OpenSSL installation
+
+\begin{lstlisting}
+    ./Configure shared linux-x86_64  \
+    -lm -Wl,-rpath=/path/to/liboqs-openssl-fork
+    make -j
+\end{lstlisting}
+
+To support a larger number of possible groups, a patch for OpenSSL was needed since the number of curves was limited to the number of classical algorithms. The source code changes are documented in a GitHub ``pull request''\footurl{https://github.com/open-quantum-safe/openssl/pull/239} and were integrated into the liboqs/OpenSSL codebase. Further, an additional pull-request was needed to avoid undefined behavior in the OpenSSL C code that resulted in an unrecoverable false-positive error when parsing a list of supported algorithms\footurl{https://github.com/open-quantum-safe/openssl/pull/256}.
+
+\subsection{hostapd}
+
+The hostapd project provides a free implementation of IEEE 802 protocols such as WiFi protocols like WPA, WPS, WPA-Enterprise. It also implements an \ac{EAP} Authenticator and Peer state-machine, an EAPOL implementation and a RADIUS client. A test client provided as part of \texttt{wpa\_supplicant}, called \texttt{eapol\_test}, can be used for a simple EAP/RADIUS integration. The implementation combines the \ac{EAP} Authenticator and Peer state-machine to provide an EAP-based authentication against a RADIUS server implementation. For cryptographic purposes, multiple libraries can be used, such as WolfSSL, GnuTLS and OpenSSL. For this implementation, the OpenSSL version is used. To allow hostapd to use the liboqs OpenSSL fork, different patches are necessary:
+
+\begin{enumerate}
+    \item \textbf{supported\_groups extension} \\
+    Since the TLS~1.3 support in hostapd is in an early stage, no configuration parameter for the \texttt{supported\_groups} extension was available and needed to be added. The necessary changes are documented in a source code patch on GitHub\footurl{https://github.com/crest42/hostapd/commit/e28a358d97d9667c98aef216b91b08966c50bc40}.
+    \item \textbf{Number of maximum \ac{EAP} roundtrips} \\
+    To avoid DoS type of attacks, hostapd stops an \ac{EAP} authentication if more than 50 request-response roundtrips are performed. \ac{EAP} itself does not restrict the number of maximum roundtrips for a single \ac{EAP} authentication process. Since the large number of data that needs to be transmitted for some key exchanges, this number was increased to 5000 roundtrips.\footurl{https://github.com/crest42/hostapd/commit/ee05c5fd8fa68c3b0b54b4c638a575cfbedd9ff2}
+    \item \textbf{Maximum TLS record size} \\
+    hostapd limits the message for a single TLS record to \(2^{16}\) bytes. Since some ciphers from liboqs easily exceed this record size, the parameter was increased by a factor of \(10^2\).\footurl{https://github.com/crest42/hostapd/commit/ee05c5fd8fa68c3b0b54b4c638a575cfbedd9ff2}
+\end{enumerate}
+
+A fork of the hostapd project with the necessary changes to support PQ TLS~1.3 is available on GitHub\footurl{https://github.com/crest42/hostapd}.
+
+\subsection{FreeRADIUS}
+
+The FreeRADIUS project provides a free and open-source server implementation of the RADIUS protocol. Additionally, \ac{EAP} and EAP-TLS are supported by FreeRADIUS. Implementing the liboqs fork into FreeRADIUS is straightforward. However, for hostapd some changes where necessary:
+
+\begin{enumerate}
+    \item \textbf{supported\_groups extension} \\
+    For hostapd, a configuration option to support the named-groups parameters in OpenSSL was added.\footurl{https://github.com/crest42/freeradius-server/commit/a8413f27af}
+    \item \textbf{Increasing boundary's} \\
+    As for hostapd, the number of allowed \ac{EAP} roundtrips was limited to \(50\), and the maximum size for a single TLS record was limited to \(2^{16}\) bytes. Both values were increased to allow rather large handshakes and to match the counterpart parameters for hostapd.\footurl{https://github.com/crest42/hostapd/commit/ee05c5fd8fa68c3b0b54b4c638a575cfbedd9ff2}
+\end{enumerate}
+
+A fork of the FreeRADIUS project with the necessary changes to support PQ TLS~1.3 is available on GitHub\footurl{https://github.com/crest42/freeradius-server}.
+
+\section{Forward Secrecy}
+
+liboqs, as implemented by the OpenSSL fork, uses an API consisting of three calls. First, the client calls a key generation function that yields a public/private key-pair, where the public key is sent to the server in the client hello message. Secondly, the server calls a key encapsulation function to encapsulate a shared secret into ciphertext by using the public key of the client. As the last step on the client-side, a key decapsulation method that uses the private key to decapsulate the shared secret is called. This three-way API is called on every TLS connection and therefore generates a unique key for every session, which implicitly already implements the notion of forward-secrecy.
+
+To build a non-ephemeral alternative, an approach for using long-lived keys needs to be implemented in OpenSSL. Usually, this would be done in the form of an X509 certificate chain. For TLS~1.3, certificate-based keys are only used in the context of signature algorithms, and only ephemeral DH-based approaches are used for the key exchange. For the sake of simplicity, the non-ephemeral variants in the evaluation are implemented by using a set of pre-generated keys as static byte arrays in the source code. This is equivalent to storing a base64-encoded key in an X509 certificate and parse it into a byte array at the start of the handshake. While there are a few \acs{CPU} cycles saved by omitting the parsing of a file, the overall latency should be almost identical since the evaluation ignores any boilerplate at the start of the program and starts measurements at the beginning of the TLS handshake.
+
+\section{Measurements}
+
+To perform a meaningful evaluation, the code was instrumented in multiple places to allow exact measurements of different parameters. The following measurements are used in the final evaluation:
+
+\begin{enumerate}
+    \item \textbf{Benchmarking the authentication}\\
+    For the generic performance measurement, the code was instrumented before the start of the EAP authentication and right after the authentication was finished successfully. The glibc implementation of \texttt{clock\_gettime} was used to get measurements with nanosecond precision. For the evaluation of the CPU time, the built-in clock \texttt{CLOCK\_PROCESS\_CPUTIME\_ID} was used. To evaluate the wall-clock runtime, the built-in clock \texttt{CLOCK\_MONOTONIC} was used.
+    \item \textbf{Benchmarking the TLS handshake}\\
+    For benchmarking the TLS handshake, an already available OpenSSL callback mechanism was used. OpenSSL allows registering two types of callbacks. First, a message callback is invoked on every handshake message received or sent, with different metadata regarding the message. Wall-clock and CPU time is measured on every invocation of the callback and stored together with the metadata provided by the handshake. Additionally, an info callback is provided, which is invoked for every state change in the TLS handshake. As for the message callback, timing information is gathered and stored with the metadata provided by this callback.
+    \item \textbf{Benchmarking the network traffic}\\
+    To get precise information about the network traffic, the raw network traffic was captured as seen by the operation system, using the \texttt{dumpcap} program provided by the Wireshark project.   
+\end{enumerate}
+
+\endinput

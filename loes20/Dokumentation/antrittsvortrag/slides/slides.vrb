@@ -1,0 +1,15 @@
+\frametitle{Usage}
+\begin{block}{Code}
+    \begin{lstlisting}[style=basetex]
+\documentclass[
+    @compress,    % compresses navigation bar
+]{beamer}
+
+@\usetheme{LMU}   % enable LMU theme
+\end{lstlisting}
+  \end{block}
+  \begin{itemize}
+    \item<1-> navigation bar has to be compressed explicitly
+    \item<2-> no options to \lstinline$\usetheme$ implemented yet
+    \item<3-> any customization has to happen in the theme's code
+  \end{itemize}

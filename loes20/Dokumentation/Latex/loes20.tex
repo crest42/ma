@@ -1,0 +1,145 @@
+
+\documentclass[bibliography=totoc,listof=totoc,BCOR=5mm,DIV=12]{scrbook}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage[hyphens]{url}
+\usepackage{hyperref}
+\usepackage[nohyperlinks,printonlyused,withpage]{acronym}
+\usepackage{enumitem}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage[table,dvipsnames]{xcolor}
+\usepackage{amssymb}
+\usepackage{ulem}
+\usepackage{amsmath}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{tikz}
+\usepackage{pifont}
+\usepackage{scrhack}
+\usepackage{bookmark}
+\newcommand{\xmark}{\textcolor{Mahogany}{\ding{55}}}%
+\newcommand{\cmark}{\textcolor{OliveGreen}{\ding{52}}}%
+\usetikzlibrary{matrix}
+\graphicspath{{./Bilder/}}
+%\renewcommand{\UrlFont}{\tiny\texttt}
+
+\input{hyphenation}
+
+\newcommand{\footurl}[1]{\footnote{{\url{#1}}}}
+\newcommand{\bigo}{\mathcal{O}}
+\begin{document}
+
+% ---------------------------------------------------------------
+\frontmatter
+    \include{./Titel/titel-lmu}
+    \thispagestyle{empty}
+    \cleardoublepage
+    \include{./Titel/erklaerung-lmu}
+    \thispagestyle{empty}
+    \cleardoublepage
+    \include{abstract}
+    \thispagestyle{empty}
+    \tableofcontents
+
+% ---------------------------------------------------------------
+\mainmatter
+
+    \input{kapitel1}
+    \input{kapitel2}
+    \input{kapitel3}
+    \input{kapitel4}
+    \input{kapitel5}
+    \input{kapitel6}
+    \input{kapitel7}
+
+% ---------------------------------------------------------------
+\backmatter
+    \listoffigures
+    \bibliographystyle{alphadin}
+    \bibliography{./Bib/loes20}
+
+\begin{acronym}
+    \acro{QGM}{Quantum Gate Model}
+    \acro{PQC}{Post Quantum Cryptography}
+    \acro{TLS}{Transport Layer Security}
+    \acro{AES}{Advanced Encryption Standard}
+    \acro{NASA}{National Aeronautics and Space Administration}
+    \acro{IEEE}{Institute of Electrical and Electronics Engineers}
+    \acro{NIST}{National Institute of Standards and Technology}
+    \acro{PQ}{Post-Quantum}
+    \acro{RSA}{Rivest-Shamir-Adleman}
+    \acro{ECDSA}{Elliptic Curve Digital Signature Algorithm}
+    \acro{DH}{Diffie-Hellman}
+    \acro{DSA}{Digital Signature Algorithm}
+    \acro{PQC}{Post-Quantum Cryptography}
+    \acro{LAN}{Local Area Network}
+    \acro{MAN}{Metropolitan Area Network}
+    \acro{SA}{Security Associations}
+    \acro{VPN}{Virtual Private Network}
+    \acro{PAE}{Port Access Entity}
+    \acro{PAC}{Port Access Controller}
+    \acro{PAC2}{Protected Access Credential}
+    \acro{AAA}{Authentication, Authorization and Accounting}
+    \acro{EAPOL}{EAP over LAN}
+    \acro{PSK}{Pre-shared Keys}
+    \acro{CAK}{Connectivity Association Key}
+    \acro{EAP}{Extensible Authentication Protocol}
+    \acro{IETF}{Internet Engineering Task Force}
+    \acro{OTP}{One-Time Password}
+    \acro{GTC}{Generic Token Card}
+    \acro{MSK}{Master Session Key}
+    \acro{MAC}{Message Authentication Code}
+    \acro{PDU}{Protocol Data Unit}
+    \acro{FFT}{Fast Fourier Transform}
+    \acro{OTP}{One-Time Pads}
+    \acro{ECC}{Error Correction Code}
+    \acro{LWE}{Learning With Errors}
+    \acro{RLWE}{Ring Learning With Errors}
+    \acro{GLWR}{General Learning With Rounding}
+    \acro{MLWE}{Multivariate Learning With Errors}
+    \acro{FIPS}{Federal Information Processing Standard}
+    \acro{ETSI}{European Telecommunications Standards Institute}
+    \acro{CA}{Secure Connectivity Association}
+    \acro{SecY}{MAC Security Entity}
+    \acro{SAK}{Secure Association Key}
+    \acro{CAK}{Connectivity Association Key}
+    \acro{ICK}{ICV Key}
+    \acro{KEK}{Key Encrypting Key}
+    \acro{KDF}{Key Derivation Function}
+    \acro{MKA}{MACSec Key Agreement}
+    \acro{FLOPS}{Floating Point Operations per Second}
+    \acro{SVP}{Shortest Vector Problem}
+    \acro{CVP}{Closest Vector Problem}
+    \acro{SIVP}{Shortest Independent Vector Problem}
+    \acro{ECC}{Elliptic Curve Cryptography}
+    \acro{EC}{Elliptic Curve}
+    \acro{ECDH}{Elliptic Curve Diffie-Hellman}
+    \acro{SIDH}{Supersingular Isogeny Diffie–Hellman}
+    \acro{IND-CPA}{Indistinguishability under chosen plaintext attack}
+    \acro{IND-CCA}{Indistinguishability under chosen ciphertext attack}
+    \acro{IND-CCA2}{Indistinguishability under adaptive chosen ciphertext attack}
+    \acro{KEM}{Key Encapsulation Method}
+    \acro{KEX}{Key Exchange Protocol}
+    \acro{DSA}{Digital Signature Algorithm}
+    \acro{DSS}{Digital Signature Standard}
+    \acro{HFE}{Hidden Field Eqaution}
+    \acro{SSH}{Sakumoto, Shirai and Hiwatari}
+    \acro{MPC}{Multi-Party Computation}
+    \acro{PFS}{Perfect Forward Secrecy}
+    \acro{IoT}{Internet of Things}
+    \acro{FIPS}{Federal Information Processing Standards}
+    \acro{MWN}{Munich Scientific Network}
+    \acro{MCU}{Micro Controller Unit}
+    \acro{IANA}{Internet Assigned Numbers Authority}
+    \acro{RFC}{Request for Comments}
+    \acro{AVP}{Attribute Value Pair}
+    \acro{DLP}{Discrete Logarithm Problem}
+    \acro{PEAP}{Protected Extensible Authentication Protocol}
+    \acro{CPU}{Central Processing Unit}
+    \acro{MPDU}{MACSec Protocol Data Unit}
+    \acro{ECC}{Error Correction Code}
+    \acro{FOSS}{Free and Open Source Software}
+\end{acronym}
+
+\end{document}

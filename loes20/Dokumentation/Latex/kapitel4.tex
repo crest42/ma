@@ -1,0 +1,296 @@
+\chapter{Design}
+
+To address the requirements defined in Chapter~3, a secure MACSec design proposal in a \ac{PQ} setting needs to focus on two major parts. First, the selected \ac{EAP} method should reflect the requirements defined by IEEE 802.1X and allows flexible support for \ac{PQ} algorithms. Also, one or more \ac{PQ} algorithms need to be selected to tackle different use-cases, based on the real-world scenarios defined in the requirements. Since different requirements are relevant for key-exchange and \ac{DSA} algorithms, they need to be considered separately.
+
+\section{Regarding the \texorpdfstring{\ac{EAP}}{EAP} Method}
+
+Since \ac{EAP} is a framework for arbitrary authentication protocols, the number of available \ac{EAP} methods is not bounded. As a more or less complete list of available implementations, the \ac{EAP} registry provided by the \ac{IANA} can be used. The \ac{IANA} is a non-profit organization for the assignment of numbers and names in the context of internet protocols, such as DNS names and IP addresses. While this list does not include any available \ac{EAP} method, it provides at least a complete list of \ac{EAP} methods with a certain maturity and practical relevance, such as \ac{EAP} methods defined in an \ac{RFC}. Table~\ref{table:eap_methods} shows an overview of all relevant \ac{EAP} methods defined by the \ac{EAP} registry and the security claims made by their official documentation. Since the requirements on the \ac{EAP} method are tightly coupled to the security claims defined by EAP, Table~\ref{table:eap_methods} gives an overview of possible candidates for a \ac{PQ} implementation.
+
+\begin{table}[!ht]
+  \small
+  \centering
+  \caption{List of \ac{EAP} methods and relevant security claims. Only methods that are non-proprietary and with available documentation are displayed. A dash (---) indicates that no information regarding this claim could be found or that the claim is irrelevant for the specific \ac{EAP} method. They are ordered by their number of supported security claims.}
+  \begin{tabularx}{\textwidth}{r|lcccccccccccc}
+      \hline
+      \textbf{ID} & \textbf{Name}  & \textbf{MA} & \textbf{IP} & \textbf{RP} & \textbf{DAP} & \textbf{CrB} & \textbf{SI} & \textbf{FS} & \textbf{CN} & \textbf{C} & \textbf{FR} & \textbf{ChB} & \textbf{KD}  \\
+      \hline
+      55 & TEAP      & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark \\   
+      25 & \ac{PEAP} & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & ---    & \cmark \\
+      13 & EAP-TLS   & \cmark & \cmark & \cmark & \cmark & ---    & \cmark & \cmark & \cmark & \cmark & \cmark & \xmark & \cmark \\
+      21 & EAP-TTLS  & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \xmark & \cmark \\   
+      43 & EAP-FAST  & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \cmark & \xmark & \cmark \\
+      49 & EAP-IKEv2 & \cmark & \cmark & \cmark & \cmark & \xmark & \cmark & \cmark & \cmark & \cmark & \cmark & \xmark & \cmark \\
+      18 & EAP-SIM   & \cmark & \cmark & \cmark & ---    & ---    & \cmark & \xmark & \xmark & \cmark & \cmark & \xmark & \cmark \\
+      23 & EAP-AKA   & \cmark & \cmark & \cmark & ---    & ---    & \cmark & \xmark & \xmark & \cmark & \cmark & \xmark & \cmark \\
+      48 & EAP-SAKE  & \cmark & \cmark & \cmark & \cmark & \cmark & \xmark & \xmark & \cmark & \cmark & \xmark & \xmark & \cmark \\
+      50 & EAP-AKA'  & \cmark & \cmark & \cmark & ---    & ---    & \cmark & \xmark & \xmark & \cmark & \cmark & \xmark & \cmark \\
+      47 & EAP-PSK   & \cmark & \cmark & \cmark & \cmark & \xmark & \cmark & \xmark & \xmark & \xmark & \xmark & \xmark & \cmark \\
+      51 & EAP-GPSK  & \cmark & \cmark & \cmark & \xmark & ---    & \cmark & \xmark & \cmark & \xmark & \xmark & \xmark & \cmark \\
+      53 & EAP-EKE   & \cmark & -      & \cmark & \cmark & \xmark & \cmark & \xmark & -      & \xmark & \xmark & \xmark & \cmark \\
+      52 & EAP-pwd   & \cmark & \xmark & \cmark & \cmark & \xmark & \cmark & \cmark & \xmark & \xmark & \cmark & \xmark & \cmark \\
+      5  & EAP-OTP   & \xmark & \xmark & \cmark & \xmark & ---    & ---    & \xmark & \xmark & \xmark & \xmark & \xmark & \xmark \\
+      4  & EAP-MD5   & \xmark & \xmark & \xmark & \xmark & ---    & ---    & \xmark & \xmark & \xmark & \xmark & \xmark & \xmark \\
+      6  & EAP-GTC   & \xmark & \xmark & \xmark & \xmark & ---    & ---    & \xmark & \xmark & \xmark & \xmark & \xmark & \xmark \\
+      54 & PT-EAP    & \xmark & \xmark & \xmark & ---    & ---    & ---    & \xmark & \xmark & \xmark & \xmark & \xmark & \xmark \\
+
+      %9 & EAP-RSA & - & - & - & - & - & - & - & - & - & - & - & - \\
+      %10 & EAP-DSS-Uniliteral & Proprietary/Undocumented \\
+      %11 & EAP-KEA & Proprietary/Undocumented \\
+      %12 & EAP-KEA-VALIDATE & Proprietary/Undocumented \\
+      %14 & EAP-AXENT & Proprietary/Undocumented \\
+      %15 & EAP-SecurID & Proprietary/Undocumented \\
+      %16 & EAP-Arcot & Proprietary/Undocumented \\
+      %17 & EAP-Cisco & Proprietary/Undocumented \\
+      %19 & EAP-SHA1 & Proprietary/Undocumented \\
+      %22 & Remote Access Service & Proprietary/Undocumented \\
+      %24 & EAP-3Com & Proprietary/Undocumented \\
+      %26 & MS-EAP-Authentication & Proprietary/Undocumented \\
+      %27 & EAP-MAKE & Proprietary/Undocumented \\
+      %28 & EAP-CRYPTOCard & Proprietary/Undocumented \\
+      %29 & EAP-MSCHAP-V2 & Proprietary/Undocumented \\
+      %30 & EAP-DynamID & Proprietary/Undocumented \\
+      %31 & EAP-Rob & Proprietary/Undocumented \\
+      %32 & EAP-POTP & Proprietary/Undocumented \\
+      %33 & MS-Authentication-TLV & Proprietary/Undocumented \\
+      %34 & EAP-SentriNET & Proprietary/Undocumented \\
+      %35 & EAP-Actiontec & Proprietary/Undocumented \\
+      %36 & Cogent Systems Biometrics & Proprietary/Undocumented \\
+      %37 & EAP-AirFortress & Proprietary/Undocumented \\
+      %38 & EAP-HTTP Digest & Proprietary/Undocumented \\
+      %39 & EAP-SecureSuite & Proprietary/Undocumented \\
+      %40 & EAP-DeviceConnect & Proprietary/Undocumented \\
+      %41 & EAP-SPEKE & Proprietary/Undocumented \\
+      %42 & EAP-MOBAC &  Proprietary/Undocumented \\
+      %44 & EAP-ZoneLabs & Proprietary/Undocumented \\
+      %45 & EAP-Link & Proprietary/Undocumented \\
+      %46 & EAP-PAX & Proprietary/Undocumented \\
+   
+  \end{tabularx}
+  \caption*{\scriptsize{Legend: Mutual Authentication (MA), Integrity Protection (IP), Replay Protection (RP), Dictionary Attack Protection(DAP), Cryptographic Binding (CrB), Session Independence (SI), Fragmentation Support(FS), Ciphersuite Negotiation (CN), Confidentiality (C), Fast Reconnect(FR), Channel Binding(ChB), Key Derivation(KD)}}
+
+  \label{table:eap_methods}
+\end{table}
+
+\subsubsection{EAP Methods}
+An appropriate \ac{EAP} method is any method that suits all requirements on the \ac{EAP} methods from Chapter~3 that are declared as ``MUST''. From the set of possible methods, two families of EAP methods can be used for the implementation. The first are tunneled methods that use a cryptographically secured tunnel between the Peer and the Authentication Server, in which arbitrary EAP methods can be used. Alternatively, direct EAP methods use some sort of cryptographic primitives to perform the authentication directly. Methods that do not fulfill all requirements labeled as ``MUST'' are ignored in the remainder of this work.
+
+\subsubsection{Tunneled \ac{EAP} Methods}
+
+Tunneled \ac{EAP} methods use cryptographic protocols to construct a secure tunnel between two devices. With this tunnel, it is possible to use any (non-secure) EAP method to authenticate the devices while inheriting some of the tunnel's security properties.  
+
+\begin{itemize}
+  \item \textbf{\ac{PEAP}} \\
+  \ac{PEAP} uses the \ac{TLS} protocol to establish a secure connection between the peer and the server. The \ac{PEAP} protocol is divided into two phases. In the first phase, a TLS handshake takes place to establish a secure tunnel. In the second phase, the secure tunnel is used to carry out one or more additional \ac{EAP} methods. The current version \ac{PEAP}v2 is declared as an informational Internet-Draft. That means that the document is a preliminary draft for a research and design process, which may be eventually published as an official RFC.
+  \item \textbf{EAP-FAST} \\
+  As for \ac{PEAP}, EAP-FAST uses the \ac{TLS} protocol to set-up a mutual authenticated secure tunnel between a Peer device and an EAP-FAST server. EAP-FAST does not make assumptions on the used TLS version and uses Type-Length-Value fields to carry arbitrary parameters between the peer and the server entity. In addition to \ac{PEAP}, EAP-FAST allows establishing a so-called Protected Access Credential (PAC) between the Authentication Server and the client. This token can be used later as proof of past authentication to resume the TLS session. EAP-FAST is described in the informational RFC~4851\cite{rfc4851}.  
+  \item \textbf{EAP-TTLS} \\
+  Similar to EAP-FAST and \ac{PEAP}, EAP-TTLS uses a TLS handshake to establish a secure, authenticated tunnel between a Peer and an EAP-TTLS server. After such a tunnel is set-up, it can be used to issue further messages, to exchange Type-Length-Value pairs or to be used for another password-based authentication of the client. As for EAP-FAST, the current state of the document is declared as informational.
+  \item \textbf{TEAP} \\
+  Since all described tunnel \ac{EAP} methods are either informational or vendor-specific, RFC~7170\cite{rfc7170} tries to bundle the competing standards by establishing a tunneled \ac{EAP} method as an Internet-Standard under the name TEAP. Since EAP-FAST is already adopted in a variety of vendor products, TEAP is mostly based on EAP-FAST with a few minor changes:
+  \begin{enumerate}
+    \item The required TLS version in TEAP is fixed to 1.2, while EAP-FAST requires at least a version of 1.0 or higher.
+    \item TEAP uses the so-called TLS ``keying exporters'' as defined by RFC~5705 to generate additional keying material. In contrast, EAP-FAST uses a pseudo-random function as defined by RFC~4346 to generate keying material.
+    \item TEAP allows using the TLS ticket extension as defined by RFC~5077
+    \item TEAP implements a wider variety of Type-Length-Value fields in both the TLS tunnel and the inner methods. This allows for implementing a notion of channel binding. Also, basic password authentication is implemented in the TLV fields in addition to arbitrary \ac{EAP} methods. 
+  \end{enumerate}
+\end{itemize}
+
+\subsubsection{Regular \ac{EAP} Methods}
+As opposed to tunneled methods, regular \ac{EAP} methods do not include additional inner \ac{EAP} methods but instead uses a cryptographic protocol directly to authenticate a Peer through EAP.
+
+\begin{itemize}
+  \item \textbf{EAP-TLS} \\
+  EAP-TLS uses the TLS protocol for certificate-based mutual authentication between the \ac{EAP} Peer and a TLS server. It is recommended by IEEE 802.1X and supports all important requirements except for channel binding.
+  \item \textbf{IKEv2}
+  EAP-IKEv2 uses the Internet Key Exchange protocol as defined by RFC~4306. IKE is usually used as a key exchange protocol for the IPSEC protocol to set-up cryptographically secured tunnels between two or more nodes. IKEv2 is tightly coupled to the Diffie-Hellman key exchange protocol to cryptographically secure data and usually uses pre-shared keys or X509 certificates to authenticate both sides. 
+\end{itemize}
+
+\subsubsection{Hybrid Key Exchange}
+
+One of the most important requirements of the used EAP method is the possibility to use hybrid key exchanges. For all the mentioned methods, such options already exist. For TLS, multiple Internet-Drafts exist that enhance TLS with a hybrid key exchange. One example uses the flexible handshake design of TLS 1.3 to encode two different key exchange methods in a single TLS \texttt{NamedGroup} by using one half of the two-byte identifier to encode the classical and the other half to encode the \ac{PQ} algorithm. The public keys and TLS \texttt{keyshare} entries are concatenated, and a length field is added\cite{ietf-tls-hybrid-design-02}. For IKEv2, design and implementation for a hybrid and post-quantum variant are available as a part of the QuaSiModO project\cite{exchangetowards}.
+
+\subsubsection{Summary}
+The selected \ac{EAP} method needs to fit the security requirements of IEEE 802.1X and support hybrid key exchanges. All presented \ac{EAP} methods provide both. For TLS-based methods, only TEAP has the notion of cryptographic binding. Therefore, it has an advantage over the other methods if the decision is solely based on the security claims. Other than that, cryptographic binding is optional, and IEEE 802.1X explicitly names EAP-TLS as the preferred method. In addition, one of the Internet-Drafts that provides a design for hybrid key exchange in TLS is already prototyped as an OpenSSL fork\cite{crockett2019prototyping}. The fork integrates liboqs, a project that implements a broad range of quantum secure key exchange protocols with a unified API. Since this implementation could be used as a drop-in replacement in existing IEEE 802.1X implementations, a TLS based method should be used in the actual implementation. If possible, TEAP should be used as a tunneling protocol. For the sake of simplicity and its wide adoption, EAP-TLS could be used as an alternative by sacrificing the notion of cryptographic binding. 
+
+%            & EAP/KEX & Hybrid \ac{PQ}/Classical Key Exchange \\
+%            & EAP/KEX & \ac{PFS} \\
+%            & EAP/KEX & Computation Overhead \\
+%            & EAP/KEX & Communication Overhead \\
+%            & DSA & Computation Overhead \\
+%            & DSA & Communication Overhead \\ 
+
+
+\section{Regarding Key Exchange}
+
+On July the 22nd, 2020, the \ac{NIST} announced the third round of the \ac{PQ} project. In the announcement, the \ac{NIST} divided the candidates for KEM and signature algorithms into finalists and alternate candidates. The finalist candidates are a selection of algorithms that are considered ``most promising'' for standardization and will be further reviewed. The alternate candidates are still considered of special interest, while not likely to be standardized at the end of the third round. The \ac{NIST} plans to add a fourth round, where these algorithms will be further evaluated. As a result of the announcement, the maintainers of liboqs decided to deprecate algorithms which are not present in the third round. All Round 3 candidates are currently supported by liboqs, except for ``Classical McEliece'' due to constraints on the maximum size of a single TLS fragment.
+
+By using liboqs, it is possible to make the implementation rather generic. This means that no selection of a specific algorithm is necessary and all Round 3 candidates can be evaluated. However, a selection of a specific algorithm is performed in this section to make a recommendation regarding the requirements as defined in the previous chapter. An extensive evaluation of all algorithms is provided in Chapter~6 and the selection may be refined after results on the performance in an 802.1X setting are available. 
+
+\subsubsection{Optimized Latency}
+
+Three types of workloads contribute to the overall latency of a key exchange algorithm: The amount of time for a key generation, the amount of time for encapsulation of a single secret and the amount of time for decapsulation. For IEEE 802.1X implementations, rather long-lived keys are used. The IEEE makes no recommendation on key rollover times, but certificates with a lifetime of multiple months to a few years are usually used. Keys are often generated on the initial deployment of a system and only refreshed sparsely. For this reason, the main contributing factors to the workload are the key encapsulation and decapsulation operations. Table~\ref{table:r3_enc_dec} shows an overview of all Round 3 candidates, sorted by the number of \acs{CPU} cycles needed for a single key exchange. As a baseline, some classical algorithms are also shown and marked with a bold font. The table shows the time for encapsulation and decapsulation of one key. In the last column, the sum of both values is shown. Since DH based approaches do not follow the same API, only the total time to compute a shared secret is shown. Multiple algorithms perform well compared to classical crypto schemes, with Saber even performing better than the selected classical algorithms. That makes Saber the obvious choice for the optimized latency algorithm. Alternatively, KYBER can be used and provides almost the same performance as Saber in a PKE setting. However, since Saber also provides the fastest key generation and public-key size compared to KYBER, it is further considered for optimized latency.
+
+\begin{table}[ht]
+  \small
+  \caption{List of Round 3 algorithms, with the number of computing \acs{CPU} cycles needed to encapsulate and decapsulate one key. Benchmark results are part of eBACS\cite{eBACS}}
+  \begin{center}
+      \begin{tabularx}{\textwidth}{X|lrrr}
+      \hline
+      \textbf{Algorithm} & \textbf{Cipher}  & \textbf{Encapsulation}  & \textbf{Decapsulation}  & \textbf{Sum}  \\
+      \hline
+      Saber & saber2-KEM & 122086 & 120464 & 242550 \\
+      \textbf{ECDH} & curve25519 & --- & --- & 297369 \\
+      KYBER & Kyber768 & 395253 & 450126 & 845379 \\
+      \textbf{ECDH} & nistp256 & --- & --- & 1173600 \\
+      Saber & saber2-PKE & 519912 & 732132 & 1252044 \\
+      KYBER & Kyber768-90s & 662580 & 714825 & 1377405 \\
+      \textbf{DH} & dh2048  & --- & --- & 2193597 \\
+      MCEliece & mceliece460896 & 660429 & 2816766 & 3477195 \\
+      NTRU Prime & sntrup761 & 1556613 & 3266190 & 4822803 \\
+      \textbf{RSA} & rsa2048 & 29169 & 5125509 & 5154678 \\
+      NTRU Prime & ntrulpr761 & 3113784 & 4590927 & 7704711 \\
+      BIKE & BIKE-2-3 & 710970 & 7114241 & 7825211 \\
+      BIKE & BIKE-3-3 & 1460866 & 7732167 & 9193033 \\
+      NTRU & ntruhps2048677 & 2404944 & 7072695 & 9477639 \\
+      BIKE & BIKE-1-3 & 1850425 & 7666855 & 9517280 \\
+      NTRU & ntruhrss701 & 2571210 & 7602183 & 10173393 \\
+      BIKE & BIKE-2-3 & 1314762 & 13840081 & 15154843 \\
+      BIKE & BIKE-1-3 & 2620332 & 16252967 & 18873299 \\
+      BIKE & BIKE-3-3 & 2885347 & 16931150 & 19816497 \\
+      HQC & hqc-192-1 & 8308629 & 12729150 & 21037779 \\
+      HQC & hqc-192-2 & 8795331 & 13384035 & 22179366 \\
+      FRODOKEM & FrodoKEM-976-SHAKE & 34000083 & 34069428 & 68069511 \\
+      FRODOKEM & FrodoKEM-976 & 49459923 & 49812678 & 99272601 \\
+      FRODOKEM & FrodoKEM-976-AES & 49881942 & 49972536 & 99854478 \\
+      SIKE & SIKEp610 & 294628000 & 296577000 & 591205000 \\
+      \hline
+  \end{tabularx}
+  \end{center}
+  \label{table:r3_enc_dec}
+\end{table}
+
+
+
+
+\subsubsection{Optimized Communication}
+
+As stated in the last chapter, the cost for communication is dominated by the size of the public keys that need to be transferred for a single key exchange. The size of the ciphertext that encapsulates the shared secret also contributes to the overall traffic. Table~\ref{table:r3_data} shows a list of all Round 3 candidates and the amount of data needed for a single key exchange. Most algorithms are within a range of few kB data, with NTRU, NTRU Prime, Kyber and Saber performing best, with only about two kB of data usage each. As for the latency, Saber seems to be an interesting pick. Since NTRU and SIKE provide a better performance, but within a negligible margin of Saber, both should also be considered as a candidate for the final design. Due to the rather small amount of traffic needed for most of the algorithms present in Round 3, a further evaluation is needed to observe the effects of key sizes on the overall protocol and to get a better understanding of the fraction of additional traffic on the overall amount of traffic. 
+
+\begin{table}[ht]
+  \small
+  \caption{List of round 3 algorithms, with the amount of communication needed to exchange a single key in Byte. Benchmark results are part of eBACS\cite{eBACS}}
+  \begin{center}
+      \begin{tabularx}{\textwidth}{X|lrrr}
+      \hline
+      \textbf{Algorithm} & \textbf{Cipher}  & \textbf{Public Key Size}  & \textbf{Ciphertext Size}  & \textbf{Sum}  \\
+      \hline
+      SIKE & SIKEp610 & 462 & 486 & 948 \\
+      NTRU & ntruhps2048677 & 930 & 930 & 1860 \\
+      Saber & saber2-PKE & 992 & 1088 & 2080 \\
+      Saber & saber2-KEM & 992 & 1088 & 2080 \\
+      NTRU Prime & sntrup761 & 1158 & 1039 & 2197 \\
+      NTRU Prime & ntrulpr761 & 1039 & 1167 & 2206 \\
+      KYBER & Kyber768 & 1184 & 1088 & 2272 \\
+      KYBER & Kyber768-90s & 1184 & 1088 & 2272 \\
+      NTRU & ntruhrss701 & 1138 & 1138 & 2276 \\
+      BIKE & BIKE-2-3 & 2481 & 2481 & 4962 \\
+      BIKE & BIKE-2-3 & 3102 & 3102 & 6204 \\
+      BIKE & BIKE-1-3 & 4963 & 4963 & 9926 \\
+      BIKE & BIKE-3-3 & 5420 & 5420 & 10840 \\
+      BIKE & BIKE-1-3 & 6205 & 6205 & 12410 \\
+      BIKE & BIKE-3-3 & 6760 & 6760 & 13520 \\
+      HQC & hqc-192-1 & 5499 & 10981 & 16480 \\
+      HQC & hqc-192-2 & 5884 & 11749 & 17633 \\
+      FRODOKEM & FrodoKEM-976-SHAKE & 15632 & 15744 & 31376 \\
+      FRODOKEM & FrodoKEM-976-AES & 15632 & 15744 & 31376 \\
+      FRODOKEM & FrodoKEM-976 & 15632 & 15768 & 31400 \\
+      MCEliece & mceliece460896 & 524160 & 188 & 524348 \\
+      \hline
+  \end{tabularx}
+  \end{center}
+  \label{table:r3_data}
+\end{table}
+
+\section{Regarding Signatures}
+
+As for the key-exchange algorithms, the third-round candidates for \ac{DSA} algorithms are separated into finalist candidates and alternate candidates. All Round 3 candidates are currently supported by liboqs, except for GeMMS, which is currently blocked due to a missing license file. Further, Rainbow and Kyber are awaiting an update to their Round 3 parameter sets. The evaluation will focus on the latest available implementations and may be re-evaluated as soon as updates are available. In the remainder of this section, an overview of benchmarking results regarding all Round 3 candidates is provided to select one or more suitable candidates for the final evaluation. However, as for the \ac{KEX} algorithms, the final evaluation should cover all available algorithms.
+
+\subsubsection{Optimized Latency}
+
+In the case of \acp{DSA}, the workload to create a single signature consists of the time needed to create a valid signature and the time needed to verify the said signature. Since keys are usually created once and reused for many signatures, the time to create a single key pair can be ignored almost entirely. Table~\ref{table:r3_dsa_latency} shows the number of CPU cycles needed for each Round 3 algorithm with security Level 3 to create and verify a signature for 59 Byte of data. Dilithium and Falcon in both available variants show a clear advantage in terms of computational cost when compared to other algorithms. While rainbow3c is a close competitor, the rest of the algorithms performs a few orders of magnitude worse. It could be argued that the latency foremost needs to be optimized on the signers' side since, for 802.1X, a client-server setting is used in which a single Authentication Server needs to create a large number of signatures, while the clients usually only need to create and verify one signature at a time. It turns out that for all variants, the total amount of time is dominated by the time it takes to create the signature and therefore, picking the algorithm with an optimized sign latency would also result in the fastest overall algorithm. For this reason, the Dilithium and Falcon families are the pick for the optimized latency algorithm. 
+
+\begin{table}[ht]
+  \small
+  \caption{List of Round 3/Level 3 algorithms, with the number of CPU cycles needed to generate and verify a signature for 59 Byte data. Benchmark results are part of eBACS\cite{eBACS}}
+  \begin{center}
+      \begin{tabularx}{\textwidth}{X|lrrr}
+      \hline
+      \textbf{Algorithm} & \textbf{Cipher}  & \textbf{sign 59B}  & \textbf{verify 59B}  & \textbf{Sum}  \\
+      \hline
+      Falcon & falcon1024tree & 2307555 & 293022 & 2600577 \\
+      Dilithium & Dilithium-1536x1280 & 2363346 & 857214 & 3220560 \\
+      Falcon & falcon1024dyn & 3829833 & 385227 & 4215060 \\
+      Dilithium & Dilithium-1536x1280-AES & 3597966 & 1747368 & 5345334 \\
+      Rainbow & rainbow3c & 10042803 & 8647956 & 18690759 \\
+      Picnic & picnic3l3 & 118965141 & 99127917 & 218093058 \\
+      GeMSS & redgemss192v2 & 295837992 & 1556703 & 297394695 \\
+      SPHINCS+ & sphincsf192sha256simple & 324775692 & 16618203 & 341393895 \\
+      SPHINCS+ & sphincsf192shake256simple & 495589581 & 25404138 & 520993719 \\
+      SPHINCS+ & sphincsf192harakasimple & 539677080 & 28178523 & 567855603 \\
+      SPHINCS+ & sphincsf192sha256robust & 625334202 & 34017615 & 659351817 \\
+      SPHINCS+ & sphincsf192shake256robust & 928225692 & 49545441 & 977771133 \\
+      SPHINCS+ & sphincsf192harakarobust & 973516635 & 53502192 & 1027018827 \\
+      SPHINCS+ & sphincss192sha256simple & 8997183459 & 6655761 & 9003839220 \\
+      GeMSS & bluegemss192v2 & 9674124921 & 1451079 & 9675576000 \\
+      SPHINCS+ & sphincss192shake256simple & 12328554978 & 9727785 & 12338282763 \\
+      SPHINCS+ & sphincss192sha256robust & 16068052314 & 13010256 & 16081062570 \\
+      SPHINCS+ & sphincss192harakasimple & 16662156084 & 11676312 & 16673832396 \\
+      SPHINCS+ & sphincss192shake256robust & 21541143618 & 19001304 & 21560144922 \\
+      SPHINCS+ & sphincss192harakarobust & 29696943852 & 22002777 & 29718946629 \\
+      \hline
+  \end{tabularx}
+  \end{center}
+  \label{table:r3_dsa_latency}
+\end{table}
+
+
+\subsubsection{Optimized Communication}
+
+As stated in the last chapter, all \ac{PQ} \acp{DSA} need a large amount of traffic to transfer signatures and public keys to the client when compared to classical algorithms and special care must be taken to reduce this amount to a minimum. Table~\ref{table:r3_dsa_data} shows the total amount of data needed to transfer a single public key and a signature for 23 Byte of data. When looking at the overall amount of data for a single signature, again Falcon and Dilithium turn out to be the clear winners, with more than three to six times fewer data needed compared to its successor SPHINCS+. However, usually public keys for digital signatures are rather long lived and can be cached on the client for a long time, while fresh signatures need to be created for each authentication round. For this reason, it makes sense to pick an algorithm with optimized signature sizes. When only looking at the signature sizes, it turns out that the algorithms with the largest public key sizes provide the smallest signatures. The GeMSS family, for example, only needs about 50 Byte for a single signature while using over 1 MB of data for the public keys. It is tempting to pick GeMSS since it would be possible to transfer over 60 GeMMS signature for the cost of a single Dilithium signature, but it needs to be considered that 802.1X usually provides mutual authentication and therefore usually at least a single public key needs to be transmitted by the client since it is impractical to cache all client keys on the Authentication Server. For this reason, Table~\ref{table:r3_dsa_data} further shows the amount of traffic needed for a scenario where server certificates are cached on the client-side. 
+
+\begin{table}[t]
+  \small
+  \caption{List of Round 3/Level 3 algorithms, with the amount of traffic in Byte needed to generate and verify a single signature for 23 Byte data. Benchmark results are part of eBACS\cite{eBACS}}
+  \begin{center}
+      \begin{tabularx}{\textwidth}{X|rrrr}
+      \hline
+      \textbf{Cipher}  & \textbf{PK Bytes}  & \textbf{Signature}  & \textbf{Sum} & \textbf{Sum (Cached PK)}  \\
+      \hline
+      falcon1024tree & 1793 & 1274 & 6134 & 4341 \\
+      falcon1024dyn & 1793 & 1275 & 6136 & 4343 \\
+      Dilithium-1536x1280 & 1760 & 3366 & 10252 & 8492\\
+      Dilithium-1536x1280-AES & 1760 & 3366 & 10252 & 8492\\
+      sphincss192shake256robust & 48 & 17064 & 34224 & 34176\\
+      sphincss192shake256simple & 48 & 17064 & 34224 & 34176\\
+      sphincss192harakasimple & 48 & 17064 & 34224 & 34176\\
+      sphincss192sha256robust & 48 & 17064 & 34224 & 34176\\
+      sphincss192harakarobust & 48 & 17064 & 34224 & 34176\\
+      sphincss192sha256simple & 48 & 17064 & 34224 & 34176\\
+      picnic3l3 & 49 & 27516 & 55130 & 55081\\
+      sphincsf192harakarobust & 48 & 35664 & 71424 & 71376\\
+      sphincsf192harakasimple & 48 & 35664 & 71424 & 71376\\
+      sphincsf192shake256simple & 48 & 35664 & 71424 & 71376\\
+      sphincsf192shake256robust & 48 & 35664 & 71424 & 71376\\
+      sphincsf192sha256simple & 48 & 35664 & 71424 & 71376\\
+      sphincsf192sha256robust & 48 & 35664 & 71424 & 71376\\
+      rainbow3c & 720793 & 156 & 1441898 & 721105\\
+      bluegemss192v2 & 1264117 & 53 & 2528340 & 1264223\\
+      redgemss192v2 & 1290543 & 55 & 2581196 & 1290653\\
+  
+      \hline
+  \end{tabularx}
+  \end{center}
+  \label{table:r3_dsa_data}
+\end{table}
+It turns out that in this case, both algorithms provide even better performance when compared to the other algorithms and still need a few orders of magnitude less data for a single signature than GeMMS. This is due to the low amount of signatures needed for a single TLS handshake. Usually, only a single signature over the whole handshake is sufficient for authorization and symmetric alternatives can be used afterward. If both public keys need to be transferred, it would take over \(700\) 23 Byte signatures for bluegemss192v2 to have an advantage over Dilithium in terms of data size.
+\endinput
